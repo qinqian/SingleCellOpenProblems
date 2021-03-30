@@ -6,6 +6,7 @@ import pandas as pd
 import scanpy as sc
 import warnings
 
+from .maestro import _rp_simple
 
 def _chrom_limit(x, tss_size=2e5):
     """Extend TSS to upstream and downstream intervals.
@@ -51,7 +52,7 @@ def _get_annotation(adata, retries=3):
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings(
-                    action="ignore", message="No results found for query"
+                    action="ignore", message=""
                 )
                 gene = data.gene_by_id(i)
             genes.append(
@@ -66,7 +67,7 @@ def _get_annotation(adata, retries=3):
             try:
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
-                        action="ignore", message="No results found for query"
+                        action="ignore", message=""
                     )
                     i = data.gene_ids_of_gene_name(i)[0]
                 gene = data.gene_by_id(i)
@@ -79,7 +80,7 @@ def _get_annotation(adata, retries=3):
                     ]
                 )
             except (IndexError, ValueError) as e:
-                print(e)
+                # print(e)
                 genes.append([np.nan, np.nan, np.nan, np.nan])
     old_col = adata.var.columns.values
     adata.var = pd.concat(
@@ -133,6 +134,9 @@ def _filter_has_chr(adata):
     if adata_filter.shape[1] > 100:
         adata = adata_filter
     return adata
+
+
+
 
 
 def _atac_genes_score(adata, top_genes=2000, threshold=1, method="beta"):
@@ -211,21 +215,26 @@ def _atac_genes_score(adata, top_genes=2000, threshold=1, method="beta"):
     )
 
     # overlap TSS bins with peaks
+    
     x = pybedtools.BedTool.from_dataframe(summits)
     y = pybedtools.BedTool.from_dataframe(extend_tss)
+    
     tss_to_peaks = x.intersect(y, wb=True, wa=True, loj=True).to_dataframe()
 
     # remove non-overlapped TSS and peaks
     tss_to_peaks = tss_to_peaks.loc[
         (tss_to_peaks.thickEnd != ".") | (tss_to_peaks.score != "."), :
     ]
-
+    
     if method == "beta":
         _beta(tss_to_peaks, adata, threshold)
     elif method == "archr_model21":
         _archr_model21(tss_to_peaks, adata)
     elif method == "marge":
         _marge(tss_to_peaks, adata)
+    elif method == "rp_simple":
+        _rp_simple(tss_to_peaks, adata)
+
     return adata
 
 
@@ -329,3 +338,5 @@ def marge(adata, n_top_genes=500):
 def archr_model21(adata, n_top_genes=500):
     adata = _atac_genes_score(adata, top_genes=n_top_genes, method="archr_model21")
     return adata
+
+

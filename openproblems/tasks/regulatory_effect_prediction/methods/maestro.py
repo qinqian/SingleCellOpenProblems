@@ -1,14 +1,16 @@
 from ....tools.decorators import method
 
+
 def _rp_simple(tss_to_peaks, adata):
-    import scipy
     import numpy as np
-    # the coordinates of the current peaks 
-    peaks = adata.uns['mode2_var']
+    import scipy
+
+    # the coordinates of the current peaks
+    peaks = adata.uns["mode2_var"]
 
     decay = 10000
 
-    Sg = lambda x: 2**(-x)
+    def Sg(x): return 2 ** (-x)
     gene_distance = 15 * decay
 
     weights = []
@@ -19,7 +21,11 @@ def _rp_simple(tss_to_peaks, adata):
 
         # print(summit_chr, summit_start, summit_end, extend_chr, extend_start, extend_end)
         sel_chr = [pi for pi in peaks if pi[0] == tss_extend_chr]
-        sel_peaks = [pi for pi in sel_chr if int(pi[1]) >= tss_extend_start and int(pi[2]) <= tss_extend_end]
+        sel_peaks = [
+            pi
+            for pi in sel_chr
+            if int(pi[1]) >= tss_extend_start and int(pi[2]) <= tss_extend_end
+        ]
 
         # print('# peaks in chromosome', len(sel_chr), '# of peaks around tss', len(sel_peaks))
         # if len(sel_peaks) > 0:
@@ -34,7 +40,7 @@ def _rp_simple(tss_to_peaks, adata):
 
         weights.append(wi)
 
-    tss_to_peaks['weight'] = weights
+    tss_to_peaks["weight"] = weights
 
     gene_peak_weight = scipy.sparse.csr_matrix(
         (
@@ -45,6 +51,7 @@ def _rp_simple(tss_to_peaks, adata):
     )
 
     adata.obsm["gene_score"] = adata.obsm["mode2"] @ gene_peak_weight.T
+
 
 @method(
     method_name="RP_simple",
@@ -57,5 +64,6 @@ def _rp_simple(tss_to_peaks, adata):
 )
 def rp_simple(adata, n_top_genes=500):
     from .beta import _atac_genes_score
+
     adata = _atac_genes_score(adata, top_genes=n_top_genes, method="rp_simple")
     return adata

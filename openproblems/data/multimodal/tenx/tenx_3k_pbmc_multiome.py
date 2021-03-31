@@ -1,5 +1,5 @@
-from .. import utils
 from ...utils import loader
+from .. import utils
 
 import os
 import scanpy as sc
@@ -7,6 +7,7 @@ import scprep
 import tempfile
 
 URL = "https://ndownloader.figshare.com/files/27379250"
+
 
 @loader
 def load_tenx_multiome(test=False):

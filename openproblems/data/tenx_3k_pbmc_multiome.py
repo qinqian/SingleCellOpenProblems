@@ -7,6 +7,7 @@ import tempfile
 
 URL = "https://ndownloader.figshare.com/files/27379250"
 
+
 @utils.loader
 def load_tenx_multiome(test=False):
     """Download PBMC data from Figshare."""
@@ -22,5 +23,3 @@ def load_tenx_multiome(test=False):
         utils.filter_genes_cells(adata)
 
     return adata
-
-

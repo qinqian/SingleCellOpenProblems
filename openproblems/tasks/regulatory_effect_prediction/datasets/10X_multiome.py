@@ -1,4 +1,4 @@
-from ....data import tenx_3k_pbmc_multiome
+from ....data.multimodal import tenx_3k_pbmc_multiome
 from ....tools.decorators import dataset
 
 @dataset("10X PBMC Multiome")

@@ -15,7 +15,7 @@ def load_tenx_multiome(test=False):
         filepath = os.path.join(tempdir, "pbmc3kmultiome.h5ad")
         scprep.io.download.download_url(URL, filepath)
         adata = sc.read_h5ad(filepath)
-        
+
     if test:
         adata = utils.subset_joint_data(adata)
 

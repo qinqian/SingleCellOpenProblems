@@ -1,5 +1,6 @@
 from ....patch import patch_datacache
 from ....tools.decorators import method
+from .maestro import _rp_enhanced
 from .maestro import _rp_simple
 
 import numpy as np
@@ -76,7 +77,8 @@ def _get_annotation(adata, retries=3):
                     ]
                 )
             except (IndexError, ValueError) as e:
-                print(e)
+                if False:  # not interested in showing this during debugging...
+                    print(e)
                 genes.append([np.nan, np.nan, np.nan, np.nan])
     old_col = adata.var.columns.values
     adata.var = pd.concat(
@@ -132,7 +134,7 @@ def _filter_has_chr(adata):
     return adata
 
 
-def _atac_genes_score(adata, top_genes=2000, threshold=1, method="beta"):
+def _atac_genes_score(adata, top_genes=2000, threshold=1, method="beta", **kwargs):
     """Calculate gene scores and insert into .obsm."""
     import pybedtools
 
@@ -188,6 +190,8 @@ def _atac_genes_score(adata, top_genes=2000, threshold=1, method="beta"):
         axis=1,
     )
 
+    extend_tss["gene_short_name"] = adata.var["gene_short_name"]
+
     # peak summits
     peaks = pd.DataFrame(
         {
@@ -226,7 +230,9 @@ def _atac_genes_score(adata, top_genes=2000, threshold=1, method="beta"):
     elif method == "marge":
         _marge(tss_to_peaks, adata)
     elif method == "rp_simple":
-        _rp_simple(tss_to_peaks, adata)
+        _rp_simple(tss_to_peaks, adata, **kwargs)
+    elif method == "rp_enhanced":
+        _rp_enhanced(tss_to_peaks, adata, **kwargs)
 
     return adata
 

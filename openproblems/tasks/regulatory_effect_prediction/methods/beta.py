@@ -30,6 +30,7 @@ def _chrom_limit(x, tss_size=2e5):
         return [gene_end - tss_size // 2, gene_end + tss_size // 2]
 
 
+# included 2-3 lines to make it run with exons.
 def _get_annotation(adata, retries=3):
     """Insert meta data into adata.obs."""
     from pyensembl import EnsemblRelease
@@ -52,20 +53,19 @@ def _get_annotation(adata, retries=3):
     for i in adata.var.index.map(lambda x: x.split(".")[0]):
         try:
             with warnings.catch_warnings():
-                warnings.filterwarnings(action="ignore", message="")
+                warnings.filterwarnings(
+                    action="ignore", message="No results found for query"
+                )
                 gene = data.gene_by_id(i)
             genes.append(
-                [
-                    "chr%s" % gene.contig,
-                    gene.start,
-                    gene.end,
-                    gene.strand,
-                ]
+                ["chr%s" % gene.contig, gene.start, gene.end, gene.strand, gene.exons]
             )
         except ValueError:
             try:
                 with warnings.catch_warnings():
-                    warnings.filterwarnings(action="ignore", message="")
+                    warnings.filterwarnings(
+                        action="ignore", message="No results found for query"
+                    )
                     i = data.gene_ids_of_gene_name(i)[0]
                 gene = data.gene_by_id(i)
                 genes.append(
@@ -74,18 +74,18 @@ def _get_annotation(adata, retries=3):
                         gene.start,
                         gene.end,
                         gene.strand,
+                        gene.exons,
                     ]
                 )
             except (IndexError, ValueError) as e:
-                if False:  # not interested in showing this during debugging...
-                    print(e)
+                print(e)
                 genes.append([np.nan, np.nan, np.nan, np.nan])
     old_col = adata.var.columns.values
     adata.var = pd.concat(
         [adata.var, pd.DataFrame(genes, index=adata.var_names)], axis=1
     )
     adata.var.columns = np.hstack(
-        [old_col, np.array(["chr", "start", "end", "strand"])]
+        [old_col, np.array(["chr", "start", "end", "strand", "exons"])]
     )
 
 
@@ -230,9 +230,16 @@ def _atac_genes_score(adata, top_genes=2000, threshold=1, method="beta", **kwarg
     elif method == "marge":
         _marge(tss_to_peaks, adata)
     elif method == "rp_simple":
-        _rp_simple(tss_to_peaks, adata, **kwargs)
+        _rp_simple(tss_to_peaks, adata)
     elif method == "rp_enhanced":
-        _rp_enhanced(tss_to_peaks, adata, **kwargs)
+        _rp_enhanced(tss_to_peaks, adata)
+
+    # the genes and gene_scores have to have the same dimensions
+    same_shape = adata.shape == adata.obsm["gene_score"].shape
+    if not same_shape:
+        print(adata.shape, adata.obsm["gene_score"].shape)
+        print("dimensions are not the same. Check calculation/filters")
+        assert same_shape
 
     return adata
 
